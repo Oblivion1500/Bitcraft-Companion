@@ -1,0 +1,506 @@
+import React, { useState, useEffect } from 'react';
+import { Plus, Minus, X, Search, Package, Hammer, Home, CheckCircle, Circle } from 'lucide-react';
+
+const BitCraftHelper = () => {
+  const [activeTab, setActiveTab] = useState('planner');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [craftingGoals, setCraftingGoals] = useState([]);
+  const [inventory, setInventory] = useState({});
+  const [expandedItems, setExpandedItems] = useState({});
+
+  // Sample crafting recipes database (this would be expanded with actual game data)
+  const craftingDatabase = {
+    // Tools
+    'Stone Axe': {
+      tier: 1,
+      profession: 'Toolcrafting',
+      materials: {
+        'Stone': 2,
+        'Wood': 1,
+        'Leather Strap': 1
+      },
+      station: 'Toolcrafting Station',
+      unlocks: ['Tree Harvesting T1']
+    },
+    'Perfected Stone Axe': {
+      tier: 1,
+      profession: 'Toolcrafting',
+      materials: {
+        'Stone Axe': 1,
+        'Perfected Tool Handle': 1,
+        'Stone': 1
+      },
+      station: 'Toolcrafting Station',
+      unlocks: ['Tree Harvesting T2']
+    },
+    'Perfected Tool Handle': {
+      tier: 1,
+      profession: 'Toolcrafting',
+      materials: {
+        'Leather Strap': 4,
+        'Processed Plank': 2,
+        'Cloth Bolt': 1
+      },
+      station: 'Toolcrafting Station'
+    },
+    'Iron Pickaxe': {
+      tier: 2,
+      profession: 'Smithing',
+      materials: {
+        'Iron Ingot': 3,
+        'Perfected Tool Handle': 1
+      },
+      station: 'Smithing Station',
+      unlocks: ['Ore Harvesting T2']
+    },
+    
+    // Materials
+    'Iron Ingot': {
+      tier: 2,
+      profession: 'Smithing',
+      materials: {
+        'Molten Iron': 1
+      },
+      station: 'Smithing Station'
+    },
+    'Molten Iron': {
+      tier: 2,
+      profession: 'Smithing',
+      materials: {
+        'Iron Ore': 2,
+        'Coal': 1
+      },
+      station: 'Smelting Station'
+    },
+    'Processed Plank': {
+      tier: 1,
+      profession: 'Carpentry',
+      materials: {
+        'Rough Stripped Wood': 2
+      },
+      station: 'Carpentry Station'
+    },
+    'Rough Stripped Wood': {
+      tier: 1,
+      profession: 'Carpentry',
+      materials: {
+        'Wood': 1
+      },
+      station: 'Carpentry Station'
+    },
+    'Leather Strap': {
+      tier: 1,
+      profession: 'Leatherworking',
+      materials: {
+        'Leather': 1
+      },
+      station: 'Leatherworking Station'
+    },
+    'Cloth Bolt': {
+      tier: 1,
+      profession: 'Tailoring',
+      materials: {
+        'Plant Fiber': 3
+      },
+      station: 'Tailoring Station'
+    },
+    
+    // Buildings
+    'Carpentry Station': {
+      tier: 1,
+      profession: 'Building',
+      materials: {
+        'Stone': 10,
+        'Wood': 15,
+        'Leather Strap': 5
+      },
+      station: 'Construction',
+      type: 'building'
+    },
+    'Smithing Station': {
+      tier: 2,
+      profession: 'Building',
+      materials: {
+        'Stone': 15,
+        'Iron Ingot': 5,
+        'Processed Plank': 10
+      },
+      station: 'Construction',
+      type: 'building'
+    },
+    'Storage Chest': {
+      tier: 1,
+      profession: 'Building',
+      materials: {
+        'Processed Plank': 8,
+        'Iron Ingot': 2,
+        'Leather Strap': 4
+      },
+      station: 'Construction',
+      type: 'building'
+    }
+  };
+
+  // Base resources that can't be crafted
+  const baseResources = new Set([
+    'Stone', 'Wood', 'Iron Ore', 'Coal', 'Leather', 'Plant Fiber'
+  ]);
+
+  // Calculate all required materials recursively
+  const calculateRequiredMaterials = (itemName, quantity = 1, visited = new Set()) => {
+    if (visited.has(itemName)) return {}; // Prevent infinite loops
+    visited.add(itemName);
+    
+    const recipe = craftingDatabase[itemName];
+    if (!recipe) return { [itemName]: quantity };
+    
+    const required = {};
+    
+    for (const [material, needed] of Object.entries(recipe.materials)) {
+      const totalNeeded = needed * quantity;
+      
+      if (baseResources.has(material)) {
+        required[material] = (required[material] || 0) + totalNeeded;
+      } else {
+        const subMaterials = calculateRequiredMaterials(material, totalNeeded, new Set(visited));
+        for (const [subMaterial, subQuantity] of Object.entries(subMaterials)) {
+          required[subMaterial] = (required[subMaterial] || 0) + subQuantity;
+        }
+      }
+    }
+    
+    return required;
+  };
+
+  // Add a new crafting goal
+  const addCraftingGoal = (itemName, quantity = 1) => {
+    const newGoal = {
+      id: Date.now(),
+      item: itemName,
+      quantity: quantity,
+      completed: false,
+      requiredMaterials: calculateRequiredMaterials(itemName, quantity)
+    };
+    setCraftingGoals(prev => [...prev, newGoal]);
+  };
+
+  // Remove a crafting goal
+  const removeCraftingGoal = (goalId) => {
+    setCraftingGoals(prev => prev.filter(goal => goal.id !== goalId));
+  };
+
+  // Update inventory
+  const updateInventory = (item, quantity) => {
+    setInventory(prev => ({
+      ...prev,
+      [item]: Math.max(0, (prev[item] || 0) + quantity)
+    }));
+  };
+
+  // Toggle expanded view for crafting tree
+  const toggleExpanded = (itemName) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [itemName]: !prev[itemName]
+    }));
+  };
+
+  // Get filtered items for search
+  const filteredItems = Object.keys(craftingDatabase).filter(item =>
+    item.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Calculate total required materials across all goals
+  const totalRequiredMaterials = craftingGoals.reduce((total, goal) => {
+    for (const [material, quantity] of Object.entries(goal.requiredMaterials)) {
+      total[material] = (total[material] || 0) + quantity;
+    }
+    return total;
+  }, {});
+
+  // Render crafting tree
+  const renderCraftingTree = (itemName, quantity = 1, level = 0) => {
+    const recipe = craftingDatabase[itemName];
+    const isExpanded = expandedItems[itemName];
+    const hasRecipe = recipe && Object.keys(recipe.materials).length > 0;
+    
+    return (
+      <div key={`${itemName}-${level}`} className={`ml-${level * 4}`}>
+        <div className="flex items-center gap-2 py-1">
+          {hasRecipe && (
+            <button
+              onClick={() => toggleExpanded(itemName)}
+              className="text-blue-500 hover:text-blue-700"
+            >
+              {isExpanded ? <Minus size={16} /> : <Plus size={16} />}
+            </button>
+          )}
+          <span className={`${baseResources.has(itemName) ? 'text-green-600 font-medium' : 'text-gray-700'}`}>
+            {itemName} x{quantity}
+          </span>
+          {recipe && (
+            <span className="text-xs text-gray-500">
+              (T{recipe.tier} {recipe.profession})
+            </span>
+          )}
+        </div>
+        
+        {hasRecipe && isExpanded && (
+          <div className="border-l-2 border-gray-200 ml-2">
+            {Object.entries(recipe.materials).map(([material, needed]) =>
+              renderCraftingTree(material, needed * quantity, level + 1)
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto p-4 bg-gray-50 min-h-screen">
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Package size={32} />
+            BitCraft Online Helper
+          </h1>
+          <p className="text-blue-100 mt-2">Track your crafting goals and manage resources efficiently</p>
+        </div>
+
+        {/* Navigation */}
+        <div className="bg-gray-100 border-b">
+          <div className="flex space-x-1 p-2">
+            <button
+              onClick={() => setActiveTab('planner')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                activeTab === 'planner' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Hammer size={16} />
+              Craft Planner
+            </button>
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                activeTab === 'inventory' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Package size={16} />
+              Inventory
+            </button>
+            <button
+              onClick={() => setActiveTab('database')}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${
+                activeTab === 'database' ? 'bg-blue-500 text-white' : 'bg-white text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Search size={16} />
+              Recipe Database
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {activeTab === 'planner' && (
+            <div className="space-y-6">
+              {/* Add Goal Section */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h2 className="text-xl font-semibold mb-4">Add Crafting Goal</h2>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      placeholder="Search items..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full p-2 border rounded-lg"
+                    />
+                    {searchTerm && (
+                      <div className="mt-2 bg-white border rounded-lg max-h-40 overflow-y-auto">
+                        {filteredItems.map(item => (
+                          <button
+                            key={item}
+                            onClick={() => {
+                              addCraftingGoal(item, 1);
+                              setSearchTerm('');
+                            }}
+                            className="w-full text-left p-2 hover:bg-gray-100 flex items-center justify-between"
+                          >
+                            <span>{item}</span>
+                            <span className="text-xs text-gray-500">
+                              T{craftingDatabase[item].tier} {craftingDatabase[item].profession}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Goals */}
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Active Crafting Goals</h2>
+                {craftingGoals.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No crafting goals yet. Add one above!</p>
+                ) : (
+                  <div className="space-y-4">
+                    {craftingGoals.map(goal => (
+                      <div key={goal.id} className="bg-white border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-lg font-medium">{goal.item} x{goal.quantity}</h3>
+                          <button
+                            onClick={() => removeCraftingGoal(goal.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          Recipe: T{craftingDatabase[goal.item].tier} {craftingDatabase[goal.item].profession}
+                        </div>
+                        <div className="bg-gray-50 p-3 rounded">
+                          <h4 className="font-medium mb-2">Crafting Tree:</h4>
+                          {renderCraftingTree(goal.item, goal.quantity)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Material Summary */}
+              {Object.keys(totalRequiredMaterials).length > 0 && (
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h2 className="text-xl font-semibold mb-4">Total Required Materials</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {Object.entries(totalRequiredMaterials).map(([material, needed]) => (
+                      <div key={material} className="flex items-center justify-between bg-white p-3 rounded border">
+                        <span className="font-medium">{material}</span>
+                        <span className="text-lg">{needed}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'inventory' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold">Inventory Management</h2>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <h3 className="font-medium mb-3">Quick Add Resources</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {Array.from(baseResources).map(resource => (
+                    <div key={resource} className="bg-white p-3 rounded border">
+                      <div className="font-medium mb-2">{resource}</div>
+                      <div className="text-lg mb-2">Current: {inventory[resource] || 0}</div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => updateInventory(resource, -1)}
+                          className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                        >
+                          -1
+                        </button>
+                        <button
+                          onClick={() => updateInventory(resource, 1)}
+                          className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                        >
+                          +1
+                        </button>
+                        <button
+                          onClick={() => updateInventory(resource, 10)}
+                          className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+                        >
+                          +10
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Inventory vs Required */}
+              {Object.keys(totalRequiredMaterials).length > 0 && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="font-medium mb-3">Inventory vs Required</h3>
+                  <div className="space-y-2">
+                    {Object.entries(totalRequiredMaterials).map(([material, needed]) => {
+                      const have = inventory[material] || 0;
+                      const sufficient = have >= needed;
+                      return (
+                        <div key={material} className={`flex items-center justify-between p-2 rounded ${
+                          sufficient ? 'bg-green-100' : 'bg-red-100'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            {sufficient ? <CheckCircle size={16} className="text-green-600" /> : <Circle size={16} className="text-red-600" />}
+                            <span className="font-medium">{material}</span>
+                          </div>
+                          <span className={`${sufficient ? 'text-green-700' : 'text-red-700'}`}>
+                            {have} / {needed}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'database' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold">Recipe Database</h2>
+              <div className="grid gap-4">
+                {Object.entries(craftingDatabase).map(([itemName, recipe]) => (
+                  <div key={itemName} className="bg-white border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-medium">{itemName}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                          T{recipe.tier}
+                        </span>
+                        <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">
+                          {recipe.profession}
+                        </span>
+                        {recipe.type === 'building' && (
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
+                            <Home size={14} className="inline mr-1" />
+                            Building
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-600 mb-2">
+                      Station: {recipe.station}
+                    </div>
+                    <div className="mb-3">
+                      <h4 className="font-medium mb-1">Materials:</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {Object.entries(recipe.materials).map(([material, quantity]) => (
+                          <span key={material} className="bg-gray-100 px-2 py-1 rounded text-sm">
+                            {material} x{quantity}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {recipe.unlocks && (
+                      <div className="text-sm text-green-600">
+                        <strong>Unlocks:</strong> {recipe.unlocks.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BitCraftHelper;

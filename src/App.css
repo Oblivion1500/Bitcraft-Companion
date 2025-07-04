@@ -1,0 +1,186 @@
+/* Bitcraft Online inspired color scheme */
+:root {
+  --bc-bg: #181c1f;
+  --bc-panel: #23282d;
+  --bc-accent: #e3b873;
+  --bc-accent2: #4a90a4;
+  --bc-text: #f5f5f5;
+  --bc-text-muted: #b0b6ba;
+  --bc-btn-hover: #e3b873;
+  --bc-btn-hover-text: #181c1f;
+}
+
+body, #root {
+  background: var(--bc-bg);
+  color: var(--bc-text);
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  min-height: 100vh;
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.dashboard-container {
+  background: var(--bc-panel);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px #000a;
+  padding: 2rem 2.5rem;
+  margin: 2rem auto;
+  max-width: 900px;
+}
+
+.dashboard-header h1 {
+  color: var(--bc-accent);
+  margin-bottom: 0.5em;
+  letter-spacing: 1px;
+}
+
+.dashboard-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.dashboard-tabs button {
+  background: none;
+  border: none;
+  color: var(--bc-text-muted);
+  font-size: 1.1rem;
+  padding: 0.5em 1.2em;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.dashboard-tabs button.active, .dashboard-tabs button:hover {
+  background: var(--bc-accent);
+  color: var(--bc-btn-hover-text);
+}
+
+section {
+  background: var(--bc-bg);
+  border-radius: 12px;
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 12px #0004;
+}
+
+input, select, button {
+  background: var(--bc-panel);
+  color: var(--bc-text);
+  border: 1px solid var(--bc-accent2);
+  border-radius: 6px;
+  padding: 0.4em 0.7em;
+  margin: 0.2em 0.2em;
+  font-size: 1em;
+  outline: none;
+  transition: border 0.2s, background 0.2s;
+}
+input:focus, select:focus {
+  border-color: var(--bc-accent);
+}
+button {
+  background: var(--bc-accent2);
+  color: var(--bc-text);
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+button:hover {
+  background: var(--bc-btn-hover);
+  color: var(--bc-btn-hover-text);
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+li {
+  background: var(--bc-panel);
+  margin-bottom: 0.7em;
+  border-radius: 8px;
+  padding: 0.7em 1em;
+  color: var(--bc-text);
+  box-shadow: 0 1px 4px #0002;
+}
+
+.item-list .item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bc-panel);
+  border: 1px solid var(--bc-accent2);
+  border-radius: 8px;
+  padding: 0.6em 1em;
+  margin-bottom: 0.5em;
+  cursor: pointer;
+  transition: background 0.2s, border 0.2s;
+}
+.item-list .item-row:hover {
+  background: var(--bc-accent2);
+  color: var(--bc-btn-hover-text);
+  border-color: var(--bc-accent);
+}
+
+.item-details-modal {
+  background: var(--bc-panel);
+  border: 2px solid var(--bc-accent2);
+  border-radius: 12px;
+  padding: 1.5em 2em;
+  margin-top: 1.5em;
+  color: var(--bc-text);
+  box-shadow: 0 2px 16px #0005;
+}
+
+strong {
+  color: var(--bc-accent);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  background: var(--bc-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bc-accent2);
+  border-radius: 8px;
+}
+
+.read-the-docs {
+  color: var(--bc-text-muted);
+}
