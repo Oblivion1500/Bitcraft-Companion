@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ITEMS, RECIPES } from './data/itemDatabase';
 import './App.css';
 
@@ -18,6 +18,10 @@ function App() {
 
   // --- Collapsible state for Recipe Database ---
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+
+  // --- Popup notification state ---
+  const [popup, setPopup] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
+  const popupTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Filter items by tier and search
   const filteredItems = ITEMS.filter(item => {
@@ -100,6 +104,15 @@ function App() {
   // Remove item from inventory
   const handleRemoveFromInventory = (itemId: string) => {
     setInventory(prev => prev.filter(i => i.item.id !== itemId));
+  };
+
+  // Helper to show popup
+  const showPopup = (message: string) => {
+    setPopup({ message, visible: true });
+    if (popupTimeout.current) clearTimeout(popupTimeout.current);
+    popupTimeout.current = setTimeout(() => {
+      setPopup({ message: '', visible: false });
+    }, 2000);
   };
 
   return (
@@ -255,7 +268,7 @@ function App() {
         {activeTab === 'inventory' && (
           <section>
             <h2>Inventory</h2>
-            <InventoryAdder items={ITEMS} onAdd={handleAddToInventory} />
+            <InventoryAdder items={ITEMS} onAdd={handleAddToInventory} onShowPopup={showPopup} />
             <ul>
               {inventory.map((entry, idx) => (
                 <li key={entry.item.id} style={{ marginBottom: 12 }}>
@@ -303,8 +316,14 @@ function App() {
                       <p>Tier: {item.tier}</p>
                       {item.rarity && <p>Rarity: {item.rarity}</p>}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                        <button onClick={() => handleAddToPlanner(item, undefined, addQuantity)}>Add to Craft Planner</button>
-                        <button onClick={() => handleAddToInventory(item, addQuantity)}>Add to Inventory</button>
+                        <button onClick={() => {
+                          handleAddToPlanner(item, undefined, addQuantity);
+                          showPopup(`${item.name} (x${addQuantity}) added to Craft Planner`);
+                        }}>Add to Craft Planner</button>
+                        <button onClick={() => {
+                          handleAddToInventory(item, addQuantity);
+                          showPopup(`${item.name} (x${addQuantity}) added to Inventory`);
+                        }}>Add to Inventory</button>
                         <input type="number" min={1} value={addQuantity} style={{ width: 50 }} onChange={e => setAddQuantity(Number(e.target.value))} />
                       </div>
                       {/* Show recipes that produce this item */}
@@ -354,7 +373,10 @@ function App() {
                                   })}
                                 </ul>
                               </div>
-                              <button style={{ marginTop: 4 }} onClick={() => handleAddToPlanner(item, recipe.id, addQuantity)}>Add to Craft Planner</button>
+                              <button style={{ marginTop: 4 }} onClick={() => {
+                                handleAddToPlanner(item, recipe.id, addQuantity);
+                                showPopup(`${item.name} (x${addQuantity}) added to Craft Planner`);
+                              }}>Add to Craft Planner</button>
                             </div>
                           );
                         })()}
@@ -367,12 +389,35 @@ function App() {
           </section>
         )}
       </main>
+      {/* Popup notification - fixed to top right, always visible regardless of scroll */}
+      {popup.visible && (
+        <div style={{
+          position: 'fixed',
+          top: 24,
+          right: 24,
+          background: 'var(--bc-accent2, #222)',
+          color: 'var(--bc-text, #fff)',
+          padding: '12px 24px',
+          borderRadius: 8,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
+          zIndex: 9999,
+          fontWeight: 600,
+          fontSize: 16,
+          opacity: 0.98,
+          transition: 'opacity 0.3s',
+          pointerEvents: 'none',
+          minWidth: 220,
+          textAlign: 'center',
+        }}>
+          {popup.message}
+        </div>
+      )}
     </div>
   );
 }
 
 // InventoryAdder component for adding items to inventory
-function InventoryAdder({ items, onAdd }: { items: typeof ITEMS, onAdd: (item: typeof ITEMS[0], qty: number) => void }) {
+function InventoryAdder({ items, onAdd, onShowPopup }: { items: typeof ITEMS, onAdd: (item: typeof ITEMS[0], qty: number) => void, onShowPopup: (msg: string) => void }) {
   const [selected, setSelected] = useState('');
   const [qty, setQty] = useState(1);
   const [search, setSearch] = useState('');
@@ -411,6 +456,7 @@ function InventoryAdder({ items, onAdd }: { items: typeof ITEMS, onAdd: (item: t
           const item = items.find(i => i.id === selected);
           if (item) {
             onAdd(item, qty);
+            onShowPopup(`${item.name} (x${qty}) added to Inventory`);
             setSelected('');
             setQty(1);
           }
@@ -420,6 +466,7 @@ function InventoryAdder({ items, onAdd }: { items: typeof ITEMS, onAdd: (item: t
   );
 }
 
+// CustomIngredientAdder component for adding custom ingredients
 function CustomIngredientAdder({ items, onAdd }: { items: typeof ITEMS, onAdd: (item: typeof ITEMS[0], qty: number) => void }) {
   const [selected, setSelected] = useState('');
   const [qty, setQty] = useState(1);
