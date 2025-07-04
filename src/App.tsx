@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
-import { PROFESSIONS, SKILLS } from './data/initialData';
+import { useState } from 'react';
 import { ITEMS, RECIPES } from './data/itemDatabase';
 import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'planner' | 'inventory' | 'database'>('planner');
   const [tierFilter, setTierFilter] = useState<number | null>(null);
-  const [selectedItem, setSelectedItem] = useState<typeof ITEMS[0] | null>(null);
   const [planner, setPlanner] = useState<Array<{ item: typeof ITEMS[0]; needed: number; have: number; recipeId?: string }>>([]);
   const [addQuantity, setAddQuantity] = useState(1);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
@@ -373,9 +371,58 @@ function App() {
   );
 }
 
+// InventoryAdder component for adding items to inventory
+function InventoryAdder({ items, onAdd }: { items: typeof ITEMS, onAdd: (item: typeof ITEMS[0], qty: number) => void }) {
+  const [selected, setSelected] = useState('');
+  const [qty, setQty] = useState(1);
+  const [search, setSearch] = useState('');
+  const [tier, setTier] = useState<number | ''>('');
+  const filteredItems = items.filter(item => {
+    const matchesSearch = !search || item.name.toLowerCase().includes(search.toLowerCase());
+    const matchesTier = tier === '' || item.tier === tier;
+    return matchesSearch && matchesTier;
+  });
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 8 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <input
+          type="text"
+          placeholder="Search item..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ width: 160 }}
+        />
+        <select value={tier} onChange={e => setTier(e.target.value ? Number(e.target.value) : '')}>
+          <option value=''>All Tiers</option>
+          {[...new Set(items.map(i => i.tier))].sort((a, b) => a - b).map(t => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
+        <select value={selected} onChange={e => setSelected(e.target.value)}>
+          <option value="">-- Select Item --</option>
+          {filteredItems.map(item => (
+            <option key={item.id} value={item.id}>{item.name} (Tier {item.tier})</option>
+          ))}
+        </select>
+        <input type="number" min={1} value={qty} style={{ width: 60 }} onChange={e => setQty(Number(e.target.value))} />
+        <button disabled={!selected} onClick={() => {
+          const item = items.find(i => i.id === selected);
+          if (item) {
+            onAdd(item, qty);
+            setSelected('');
+            setQty(1);
+          }
+        }}>Add</button>
+      </div>
+    </div>
+  );
+}
+
 function CustomIngredientAdder({ items, onAdd }: { items: typeof ITEMS, onAdd: (item: typeof ITEMS[0], qty: number) => void }) {
-  const [selected, setSelected] = useState<string>('');
-  const [qty, setQty] = useState<number>(1);
+  const [selected, setSelected] = useState('');
+  const [qty, setQty] = useState(1);
   const [search, setSearch] = useState('');
   const [tier, setTier] = useState<number | ''>('');
   const filteredItems = items.filter(item => {
@@ -410,56 +457,12 @@ function CustomIngredientAdder({ items, onAdd }: { items: typeof ITEMS, onAdd: (
         <input type="number" min={1} value={qty} style={{ width: 60 }} onChange={e => setQty(Number(e.target.value))} />
         <button disabled={!selected} onClick={() => {
           const item = items.find(i => i.id === selected);
-          if (item) onAdd(item, qty);
-        }}>
-          Add
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function InventoryAdder({ items, onAdd }: { items: typeof ITEMS, onAdd: (item: typeof ITEMS[0], qty: number) => void }) {
-  const [selected, setSelected] = useState<string>('');
-  const [qty, setQty] = useState<number>(1);
-  const [search, setSearch] = useState('');
-  const [tier, setTier] = useState<number | ''>('');
-  const filteredItems = items.filter(item => {
-    const matchesSearch = !search || item.name.toLowerCase().includes(search.toLowerCase());
-    const matchesTier = tier === '' || item.tier === tier;
-    return matchesSearch && matchesTier;
-  });
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <input
-          type="text"
-          placeholder="Search item..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ width: 160 }}
-        />
-        <select value={tier} onChange={e => setTier(e.target.value ? Number(e.target.value) : '')}>
-          <option value=''>All Tiers</option>
-          {[...new Set(items.map(i => i.tier))].sort((a, b) => a - b).map(t => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-      </div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
-        <select value={selected} onChange={e => setSelected(e.target.value)}>
-          <option value="">-- Select Item --</option>
-          {filteredItems.map(item => (
-            <option key={item.id} value={item.id}>{item.name} (Tier {item.tier})</option>
-          ))}
-        </select>
-        <input type="number" min={1} value={qty} style={{ width: 60 }} onChange={e => setQty(Number(e.target.value))} />
-        <button disabled={!selected} onClick={() => {
-          const item = items.find(i => i.id === selected);
-          if (item) onAdd(item, qty);
-        }}>
-          Add to Inventory
-        </button>
+          if (item) {
+            onAdd(item, qty);
+            setSelected('');
+            setQty(1);
+          }
+        }}>Add</button>
       </div>
     </div>
   );
