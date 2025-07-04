@@ -64,7 +64,7 @@ This project is licensed under the MIT License. See [LICENSE](./LICENSE) for det
 
 ## Support & Donations
 
-If you find this app helpful and want to support development, donations are welcome! Add your preferred donation link here (e.g., PayPal, Ko-fi, Buy Me a Coffee).
+If you find this app helpful and want to support development, donations are welcome! Donate ETH here: 0xe9046ff51e3639a98ee18c49b4ad63c8434d97f0
 
 ---
 
