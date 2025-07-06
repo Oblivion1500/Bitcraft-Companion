@@ -1,5 +1,6 @@
 import type { ITEMS } from "@/data/itemDatabase";
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
 
 // InventoryAdder component for adding items to inventory
 export function InventoryAdder({ items, onAdd, onShowPopup }: { items: typeof ITEMS, onAdd: (item: typeof ITEMS[0], qty: number) => void, onShowPopup: (msg: string) => void }) {
@@ -15,7 +16,7 @@ export function InventoryAdder({ items, onAdd, onShowPopup }: { items: typeof IT
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 8 }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <input
+                <Input
                     type="text"
                     placeholder="Search item..."
                     value={search}
